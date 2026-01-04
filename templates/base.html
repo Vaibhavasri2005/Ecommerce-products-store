@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}E-Commerce Platform{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #fff !important;
+        }
+        
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            margin: 0 10px;
+            transition: color 0.3s;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            color: var(--secondary-color) !important;
+        }
+        
+        .cart-badge, .wishlist-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 25px;
+        }
+        
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .chat-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--success-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+        
+        .chat-button:hover {
+            transform: scale(1.1);
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-shopping-bag"></i> E-Shop
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/products">Products</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact">Contact</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item position-relative" id="wishlistNav" style="display:none;">
+                        <a class="nav-link" href="/wishlist">
+                            <i class="fas fa-heart"></i> Wishlist
+                            <span class="wishlist-badge" id="wishlistCount">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item position-relative" id="cartNav" style="display:none;">
+                        <a class="nav-link" href="/cart">
+                            <i class="fas fa-shopping-cart"></i> Cart
+                            <span class="cart-badge" id="cartCount">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" id="loginBtn" style="display:none;">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </li>
+                    <li class="nav-item" id="signupBtn" style="display:none;">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#registerModal">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown" id="userMenu" style="display:none;">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span id="username">Account</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-box"></i> Orders</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container for notifications -->
+    <div class="toast-container"></div>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5><i class="fas fa-shopping-bag"></i> E-Shop</h5>
+                    <p>Your one-stop solution for online shopping with high availability and scalable infrastructure.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="/products" class="text-white text-decoration-none">Products</a></li>
+                        <li><a href="/contact" class="text-white text-decoration-none">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact Us</h5>
+                    <p>
+                        <i class="fas fa-envelope"></i> support@eshop.com<br>
+                        <i class="fas fa-phone"></i> +1 (555) 123-4567<br>
+                        <i class="fas fa-map-marker-alt"></i> 123 E-Commerce St, Tech City
+                    </p>
+                </div>
+            </div>
+            <hr class="bg-white">
+            <div class="text-center">
+                <p>&copy; 2026 E-Shop. All rights reserved. | Load-balanced infrastructure powered by Nginx</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chat Button -->
+    <div class="chat-button" onclick="openChat()">
+        <i class="fas fa-comments fa-2x"></i>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        // Common functions
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const bgClass = type === 'success' ? 'bg-success' : 
+                          type === 'error' ? 'bg-danger' : 
+                          type === 'warning' ? 'bg-warning' : 'bg-info';
+            
+            const toast = `
+                <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toast);
+            const toastElement = document.getElementById(toastId);
+            const bsToast = new bootstrap.Toast(toastElement);
+            bsToast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+        
+        function openChat() {
+            window.open('/chat', 'Chat', 'width=400,height=600');
+        }
+        
+        // Update cart and wishlist counts
+        function updateCounts() {
+            fetch('/api/cart/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('cartCount').textContent = data.item_count;
+                    }
+                })
+                .catch(error => console.error('Error fetching cart count:', error));
+            
+            fetch('/api/wishlist/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('wishlistCount').textContent = data.item_count;
+                    }
+                })
+                .catch(error => console.error('Error fetching wishlist count:', error));
+        }
+        
+        // Check if user is logged in
+        function checkAuth() {
+            fetch('/auth/current-user')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // User is logged in
+                        document.getElementById('username').textContent = data.user.username;
+                        document.getElementById('userMenu').style.display = 'block';
+                        document.getElementById('wishlistNav').style.display = 'block';
+                        document.getElementById('cartNav').style.display = 'block';
+                        document.getElementById('loginBtn').style.display = 'none';
+                        document.getElementById('signupBtn').style.display = 'none';
+                        updateCounts();
+                    } else {
+                        showLoginButtons();
+                    }
+                })
+                .catch(error => {
+                    showLoginButtons();
+                });
+        }
+        
+        function showLoginButtons() {
+            // User not logged in - show login/signup buttons
+            document.getElementById('loginBtn').style.display = 'block';
+            document.getElementById('signupBtn').style.display = 'block';
+            document.getElementById('userMenu').style.display = 'none';
+            document.getElementById('wishlistNav').style.display = 'none';
+            document.getElementById('cartNav').style.display = 'none';
+        }
+        
+        function logout() {
+            fetch('/auth/logout', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    showToast('Logged out successfully', 'success');
+                    showLoginButtons();
+                    setTimeout(() => window.location.href = '/', 1000);
+                })
+                .catch(error => showToast('Logout failed', 'error'));
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

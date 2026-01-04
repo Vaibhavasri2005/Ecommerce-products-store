@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - E-Commerce Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Checkout</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Shipping Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-shipping-fast"></i> Shipping Information</h5>
+                </div>
+                <div class="card-body">
+                    <form id="shippingForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="fullName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone *</label>
+                                <input type="tel" class="form-control" id="phone" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address *</label>
+                            <textarea class="form-control" id="address" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City *</label>
+                                <input type="text" class="form-control" id="city" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">State *</label>
+                                <input type="text" class="form-control" id="state" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">ZIP Code *</label>
+                                <input type="text" class="form-control" id="zipCode" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Payment Method -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-credit-card"></i> Payment Method</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Payment processing is disabled in demo mode
+                    </div>
+                    <div id="paymentMethods" class="row">
+                        <!-- Payment methods will be loaded here -->
+                    </div>
+                    
+                    <!-- Mock Payment Form -->
+                    <div id="paymentForm" class="mt-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Card Number</label>
+                                <input type="text" class="form-control" placeholder="1234 5678 9012 3456" disabled>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Expiry Date</label>
+                                <input type="text" class="form-control" placeholder="MM/YY" disabled>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">CVV</label>
+                                <input type="text" class="form-control" placeholder="123" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Order Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div id="orderItems">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span id="shipping">$5.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax (10%):</span>
+                        <span id="tax">$0.00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong id="total" class="text-primary">$0.00</strong>
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="placeOrder()">
+                        <i class="fas fa-check"></i> Place Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedPaymentMethod = 'credit_card';
+    let cartData = null;
+    
+    function loadCart() {
+        fetch('/api/cart/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.cart_items.length === 0) {
+                        window.location.href = '/cart';
+                        return;
+                    }
+                    cartData = data;
+                    displayOrderSummary(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading cart:', error);
+                window.location.href = '/cart';
+            });
+    }
+    
+    function loadPaymentMethods() {
+        fetch('/api/checkout/payment-methods')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayPaymentMethods(data.payment_methods);
+                }
+            });
+    }
+    
+    function displayPaymentMethods(methods) {
+        const container = document.getElementById('paymentMethods');
+        container.innerHTML = methods.map((method, index) => `
+            <div class="col-md-6 mb-3">
+                <div class="card payment-method ${index === 0 ? 'border-primary' : ''}" onclick="selectPaymentMethod('${method.id}', this)" style="cursor: pointer;">
+                    <div class="card-body text-center">
+                        <i class="fas fa-${method.icon} fa-2x mb-2"></i>
+                        <p class="mb-0">${method.name}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function selectPaymentMethod(methodId, element) {
+        selectedPaymentMethod = methodId;
+        document.querySelectorAll('.payment-method').forEach(el => {
+            el.classList.remove('border-primary');
+        });
+        element.classList.add('border-primary');
+        
+        // Show payment form for card payments
+        if (methodId === 'credit_card' || methodId === 'debit_card') {
+            document.getElementById('paymentForm').style.display = 'block';
+        } else {
+            document.getElementById('paymentForm').style.display = 'none';
+        }
+    }
+    
+    function displayOrderSummary(data) {
+        const container = document.getElementById('orderItems');
+        container.innerHTML = data.cart_items.map(item => `
+            <div class="d-flex justify-content-between mb-2">
+                <span>${item.product.name} x ${item.quantity}</span>
+                <span>$${item.subtotal.toFixed(2)}</span>
+            </div>
+        `).join('');
+        
+        const subtotal = data.total;
+        const shipping = 5.00;
+        const tax = subtotal * 0.10;
+        const total = subtotal + shipping + tax;
+        
+        document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('shipping').textContent = '$' + shipping.toFixed(2);
+        document.getElementById('tax').textContent = '$' + tax.toFixed(2);
+        document.getElementById('total').textContent = '$' + total.toFixed(2);
+    }
+    
+    function placeOrder() {
+        // Validate shipping form
+        const form = document.getElementById('shippingForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        // Collect shipping address
+        const shippingAddress = `${document.getElementById('fullName').value}\n` +
+                               `${document.getElementById('address').value}\n` +
+                               `${document.getElementById('city').value}, ${document.getElementById('state').value} ${document.getElementById('zipCode').value}\n` +
+                               `Phone: ${document.getElementById('phone').value}`;
+        
+        // Process checkout
+        const checkoutData = {
+            shipping_address: shippingAddress,
+            payment_method: selectedPaymentMethod
+        };
+        
+        fetch('/api/checkout/process', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(checkoutData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Order placed successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                showToast(data.message || 'Failed to place order', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Failed to place order. Please try again.', 'error');
+        });
+    }
+    
+    // Load user info
+    function loadUserInfo() {
+        fetch('/auth/current-user')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.user) {
+                    document.getElementById('fullName').value = data.user.full_name || '';
+                    document.getElementById('phone').value = data.user.phone || '';
+                    if (data.user.address) {
+                        document.getElementById('address').value = data.user.address;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading user info:', error);
+            });
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCart();
+        loadPaymentMethods();
+        loadUserInfo();
+    });
+</script>
+{% endblock %}

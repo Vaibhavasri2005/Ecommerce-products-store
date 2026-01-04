@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chat - E-Shop Support</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        
+        .message.sent {
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message.received .message-content {
+            background-color: white;
+            border: 1px solid #dee2e6;
+        }
+        
+        .message.sent .message-content {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .message-info {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .typing-indicator {
+            padding: 10px;
+            background-color: white;
+            border-radius: 18px;
+            display: inline-block;
+        }
+        
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: #6c757d;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .chat-input {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #27ae60;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h5 class="mb-0">
+                <i class="fas fa-headset"></i> Live Chat Support
+            </h5>
+            <small>
+                <span class="status-badge"></span>
+                <span id="connectionStatus">Connecting...</span>
+            </small>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <!-- Messages will be loaded here -->
+        </div>
+        
+        <div id="typingIndicator" style="display: none; padding: 10px 20px;">
+            <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <small class="text-muted ms-2">Support is typing...</small>
+        </div>
+        
+        <div class="chat-input">
+            <form id="messageForm" class="d-flex gap-2">
+                <input type="text" class="form-control" id="messageInput" placeholder="Type your message..." autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io({
+            transports: ['websocket', 'polling']
+        });
+        
+        let sessionId = localStorage.getItem('chatSessionId');
+        let username = localStorage.getItem('chatUsername') || 'Guest_' + Math.floor(Math.random() * 10000);
+        let typingTimeout;
+        
+        // Connection events
+        socket.on('connect', () => {
+            document.getElementById('connectionStatus').textContent = 'Connected';
+            joinChat();
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+        });
+        
+        socket.on('connection_response', (data) => {
+            console.log('Connected to server:', data);
+        });
+        
+        // Join chat
+        function joinChat() {
+            socket.emit('join_chat', {
+                session_id: sessionId,
+                username: username
+            });
+        }
+        
+        socket.on('chat_joined', (data) => {
+            sessionId = data.session_id;
+            localStorage.setItem('chatSessionId', sessionId);
+            localStorage.setItem('chatUsername', username);
+            
+            // Load previous messages
+            data.messages.forEach(msg => {
+                displayMessage(msg);
+            });
+            
+            // Show welcome message if no previous messages
+            if (data.messages.length === 0) {
+                displaySystemMessage('Welcome to E-Shop support! How can we help you today?');
+            }
+        });
+        
+        socket.on('user_joined', (data) => {
+            displaySystemMessage(data.message);
+        });
+        
+        socket.on('user_left', (data) => {
+            displaySystemMessage(data.message);
+        });
+        
+        // Message events
+        socket.on('new_message', (data) => {
+            displayMessage(data.message);
+        });
+        
+        // Typing indicator
+        socket.on('user_typing', (data) => {
+            if (data.is_typing) {
+                document.getElementById('typingIndicator').style.display = 'block';
+                scrollToBottom();
+            } else {
+                document.getElementById('typingIndicator').style.display = 'none';
+            }
+        });
+        
+        // Send message
+        document.getElementById('messageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                socket.emit('send_message', {
+                    session_id: sessionId,
+                    username: username,
+                    message: message,
+                    is_support: false
+                });
+                
+                input.value = '';
+                
+                // Stop typing indicator
+                socket.emit('typing', {
+                    session_id: sessionId,
+                    username: username,
+                    is_typing: false
+                });
+            }
+        });
+        
+        // Typing indicator
+        document.getElementById('messageInput').addEventListener('input', () => {
+            clearTimeout(typingTimeout);
+            
+            socket.emit('typing', {
+                session_id: sessionId,
+                username: username,
+                is_typing: true
+            });
+            
+            typingTimeout = setTimeout(() => {
+                socket.emit('typing', {
+                    session_id: sessionId,
+                    username: username,
+                    is_typing: false
+                });
+            }, 1000);
+        });
+        
+        // Display functions
+        function displayMessage(msg) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const isOwn = msg.username === username;
+            const messageClass = isOwn ? 'sent' : 'received';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${messageClass}`;
+            
+            const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${!isOwn ? `<strong>${msg.username}</strong><br>` : ''}
+                    ${msg.message}
+                    <div class="message-info">${timestamp}</div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        function displaySystemMessage(text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'text-center text-muted my-2';
+            messageDiv.innerHTML = `<small><em>${text}</em></small>`;
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        function scrollToBottom() {
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Request support
+        function requestSupport() {
+            socket.emit('support_request', {
+                session_id: sessionId,
+                username: username
+            });
+        }
+        
+        socket.on('support_notified', (data) => {
+            displaySystemMessage(data.message);
+        });
+        
+        // Auto-request support after 5 seconds
+        setTimeout(() => {
+            requestSupport();
+        }, 5000);
+    </script>
+</body>
+</html>

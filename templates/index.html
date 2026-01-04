@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Home - E-Commerce Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <h1 class="display-4 mb-4">Welcome to E-Shop</h1>
+        <p class="lead mb-4">Scalable, Load-Balanced E-Commerce Platform</p>
+        <p class="mb-4">Experience seamless shopping with high availability infrastructure</p>
+        <a href="/products" class="btn btn-light btn-lg">Shop Now</a>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Why Choose Us?</h2>
+        <div class="row">
+            <div class="col-md-3 text-center mb-4">
+                <div class="card p-4">
+                    <i class="fas fa-server fa-3x text-primary mb-3"></i>
+                    <h5>Load Balanced</h5>
+                    <p>Multiple servers ensure high availability</p>
+                </div>
+            </div>
+            <div class="col-md-3 text-center mb-4">
+                <div class="card p-4">
+                    <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                    <h5>Secure</h5>
+                    <p>Your data is protected with encryption</p>
+                </div>
+            </div>
+            <div class="col-md-3 text-center mb-4">
+                <div class="card p-4">
+                    <i class="fas fa-bolt fa-3x text-warning mb-3"></i>
+                    <h5>Fast Performance</h5>
+                    <p>Optimized for speed and efficiency</p>
+                </div>
+            </div>
+            <div class="col-md-3 text-center mb-4">
+                <div class="card p-4">
+                    <i class="fas fa-headset fa-3x text-info mb-3"></i>
+                    <h5>24/7 Support</h5>
+                    <p>Real-time chat support available</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section class="py-5 bg-white">
+    <div class="container">
+        <h2 class="text-center mb-5">Featured Products</h2>
+        <div class="row" id="featuredProducts">
+            <!-- Products will be loaded dynamically -->
+            <div class="col-12 text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <a href="/products" class="btn btn-primary btn-lg">View All Products</a>
+        </div>
+    </div>
+</section>
+
+<!-- Authentication Modals -->
+<!-- Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Login</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="loginUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Don't have an account? <a href="#" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="modal">Register</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Register Modal -->
+<div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Register</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="regUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="regEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="regFullName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="regPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="regConfirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load featured products
+    function loadFeaturedProducts() {
+        fetch('/api/products/?per_page=4')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayProducts(data.products);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading products:', error);
+                document.getElementById('featuredProducts').innerHTML = 
+                    '<div class="col-12 text-center"><p class="text-danger">Failed to load products</p></div>';
+            });
+    }
+    
+    function displayProducts(products) {
+        const container = document.getElementById('featuredProducts');
+        
+        if (products.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center"><p>No products available</p></div>';
+            return;
+        }
+        
+        container.innerHTML = products.map(product => `
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <img src="${product.image_url}" class="card-img-top" alt="${product.name}" style="height: 200px; object-fit: cover;">
+                    <div class="card-body">
+                        <h5 class="card-title">${product.name}</h5>
+                        <p class="card-text text-truncate">${product.description || 'No description'}</p>
+                        <h4 class="text-primary">$${product.price.toFixed(2)}</h4>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1" onclick="addToCart(${product.id})">
+                                <i class="fas fa-cart-plus"></i> Cart
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="addToWishlist(${product.id})">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Add to cart
+    function addToCart(productId) {
+        fetch('/api/cart/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({product_id: productId, quantity: 1})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Product added to cart!', 'success');
+                updateCounts();
+            } else {
+                showToast(data.message || 'Failed to add to cart', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Please login to add items to cart', 'warning');
+        });
+    }
+    
+    // Add to wishlist
+    function addToWishlist(productId) {
+        fetch('/api/wishlist/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({product_id: productId})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Product added to wishlist!', 'success');
+                updateCounts();
+            } else {
+                showToast(data.message || 'Failed to add to wishlist', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Please login to add items to wishlist', 'warning');
+        });
+    }
+    
+    // Login form handler
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        const remember = document.getElementById('rememberMe').checked;
+        
+        fetch('/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, password, remember})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Login successful!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                checkAuth();
+                location.reload();
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => showToast('Login failed', 'error'));
+    });
+    
+    // Register form handler
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+        
+        if (password !== confirmPassword) {
+            showToast('Passwords do not match', 'error');
+            return;
+        }
+        
+        const data = {
+            username: document.getElementById('regUsername').value,
+            email: document.getElementById('regEmail').value,
+            full_name: document.getElementById('regFullName').value,
+            password: password
+        };
+        
+        fetch('/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Registration successful!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                checkAuth();
+                location.reload();
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => showToast('Registration failed', 'error'));
+    });
+    
+    // Load products on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFeaturedProducts();
+        
+        // Check if user needs to login
+        fetch('/auth/current-user')
+            .catch(error => {
+                // Show login modal if not authenticated
+                // new bootstrap.Modal(document.getElementById('loginModal')).show();
+            });
+    });
+</script>
+{% endblock %}
